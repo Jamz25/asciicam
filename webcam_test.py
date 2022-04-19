@@ -1,42 +1,34 @@
 import cv2 as cv
 import pygame
 import threading
+import time
 
 pygame.init()
-screen = pygame.display.set_mode((800, 600))
+screen = pygame.display.set_mode((575, 620))
 pygame.display.set_caption("ASCII CAMERA")
-font = pygame.font.SysFont("Calibri", 16)
+font = pygame.font.SysFont("Calibri", 9)
 clock = pygame.time.Clock()
 
 capture = cv.VideoCapture(0)
 
-ASCII_VALUES = '  Ñ@#W$9876543210?!abc;:+=-,._    '
-ascii_renders = [font.render(value, False, (255, 255, 255)) for value in ASCII_VALUES]
+ASCII_VALUES = 'Ñ@#W$9876543210?!abc;:+=-,._'
 depth_const = 256 / len(ASCII_VALUES)
+ascii_renders = [font.render(ASCII_VALUES[value], False, (255-(depth_const*value), 255-(depth_const*value), 
+    255-(depth_const*value))) for value in range(len(ASCII_VALUES))]
 
-class Pixel:
-    def __init__(self, value):
-        self.value = value
-
-    def change_value(self, value):
-        self.value = value
-
-    def draw(self, screen, position):
-        screen.blit(ascii_renders[self.value], position)
-
-CAM_DIMENSIONS = (48, 48)
-pixel_array = [[Pixel(len(ASCII_VALUES) - 1) for pixel in range(CAM_DIMENSIONS[1])] 
+CAM_DIMENSIONS = (64, 64)
+pixel_array = [[len(ASCII_VALUES) - 1 for pixel in range(CAM_DIMENSIONS[1])] 
 for row in range(CAM_DIMENSIONS[0])]
 
 def _asciify(pixel):
-    value = max(min(int(pixel / depth_const), len(ASCII_VALUES)), 0)
+    value = max(min(len(ASCII_VALUES) - int(pixel / depth_const), len(ASCII_VALUES) - 1), 0)
     return value
 
 def convert_to_ascii(frame_content):
-    global pixel_array
+    global pixel_array, send_packet
     for r_index, row in enumerate(frame_content):
         for p_index, pixel in enumerate(row):
-            pixel_array[p_index][r_index].change_value(_asciify(pixel))
+            pixel_array[p_index][r_index] = _asciify(pixel)
 
 def camera_thread():
     while running:
@@ -46,8 +38,9 @@ def camera_thread():
         frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         convert_to_ascii(frame)
 
+camera_surface = pygame.Surface((575, 578))
 running = True
-threading.Thread(target=camera_thread, daemon=True).start()
+threading.Thread(target=camera_thread).start()
 while running:
 
     clock.tick(60)
@@ -56,12 +49,18 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                pygame.image.save(camera_surface, str(hash(time.time())) + ".png")
 
-    screen.fill(0)
+    screen.fill((80, 80, 80))
+    camera_surface.fill(0)
 
     for r_index, row in enumerate(pixel_array):
         for p_index, pixel in enumerate(row):
-            pixel.draw(screen, (100 + r_index * 12, p_index * 12))
+            camera_surface.blit(ascii_renders[pixel], (r_index * 9, p_index * 9))
+
+    screen.blit(camera_surface, (0, 0))
 
     pygame.display.update()
 
