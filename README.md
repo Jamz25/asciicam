@@ -1,6 +1,6 @@
 # asciicam
 
-asciicam is a (badly written) program written in python that uses data from a webcam, and converts it into ascii based on the brightness.
+A (badly written) program written in python that uses data from a webcam, and converts it into ascii based on the brightness.
 
 OpenCV for python was used in order to get webcam data and convert that data into an array of black/white values.
 I have then written an algorithm that breaks this data down into corresponding "brightnesses"/sizes of ascii characters.
